@@ -1,1 +1,868 @@
- 
+:root {
+  --bg-dark: #100d17;
+  --bg-panel: #201a2b;
+  --bg-panel-light: #2c2438;
+
+  --gold: #f2c66d;
+  --gold-dark: #a9782d;
+
+  --red: #c84b49;
+  --red-dark: #7c2928;
+
+  --purple: #8f6ac8;
+  --green: #76bd65;
+
+  --text-main: #f7f1e6;
+  --text-sub: #bcb3c5;
+
+  --border: rgba(255, 255, 255, 0.09);
+  --shadow: rgba(0, 0, 0, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg-dark);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+
+  color: var(--text-main);
+  background:
+    radial-gradient(
+      circle at top,
+      #332240 0%,
+      #17111f 42%,
+      #0c0911 100%
+    );
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Hiragino Sans",
+    "Yu Gothic",
+    sans-serif;
+
+  overflow-x: hidden;
+}
+
+button {
+  font: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.screen {
+  width: 100%;
+  min-height: 100vh;
+}
+
+
+/* =========================
+   タイトル画面
+========================= */
+
+.title-screen {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding:
+    max(32px, env(safe-area-inset-top))
+    22px
+    max(32px, env(safe-area-inset-bottom));
+
+  overflow: hidden;
+}
+
+.title-screen::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      rgba(255,255,255,0.02) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,0.02) 1px,
+      transparent 1px
+    );
+
+  background-size: 42px 42px;
+
+  opacity: 0.6;
+}
+
+.title-card {
+  position: relative;
+  z-index: 2;
+
+  width: min(100%, 440px);
+
+  padding: 42px 24px 24px;
+
+  text-align: center;
+
+  border: 1px solid rgba(242, 198, 109, 0.35);
+  border-radius: 28px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(42, 32, 55, 0.97),
+      rgba(22, 17, 31, 0.98)
+    );
+
+  box-shadow:
+    0 30px 70px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+.title-card::before {
+  content: "";
+
+  position: absolute;
+  inset: 10px;
+
+  border: 1px solid rgba(242, 198, 109, 0.12);
+  border-radius: 20px;
+
+  pointer-events: none;
+}
+
+.title-emblem {
+  width: 104px;
+  height: 104px;
+
+  margin: 0 auto 18px;
+
+  display: grid;
+  place-items: center;
+
+  font-size: 54px;
+
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      #3c2c50 0%,
+      #201727 72%
+    );
+
+  box-shadow:
+    0 0 34px rgba(242, 198, 109, 0.22),
+    inset 0 0 20px rgba(0,0,0,0.38);
+
+  animation: emblemFloat 3s ease-in-out infinite;
+}
+
+.title-label,
+.header-label,
+.section-label {
+  margin: 0;
+
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.title-card h1 {
+  margin: 8px 0 14px;
+
+  font-size: clamp(34px, 10vw, 48px);
+  line-height: 1.08;
+  letter-spacing: 0.04em;
+
+  text-shadow:
+    0 3px 0 #5a3624,
+    0 8px 22px rgba(0,0,0,0.5);
+}
+
+.title-description {
+  margin: 0 0 32px;
+
+  color: var(--text-sub);
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.main-button,
+.battle-button {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+
+  border: 1px solid #f4d38e;
+  border-radius: 18px;
+
+  color: #24160b;
+
+  background:
+    linear-gradient(
+      180deg,
+      #f7d991,
+      #c9933d
+    );
+
+  box-shadow:
+    0 7px 0 #744718,
+    0 14px 28px rgba(0,0,0,0.35);
+
+  cursor: pointer;
+}
+
+.main-button {
+  min-height: 74px;
+  flex-direction: column;
+  gap: 2px;
+
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.main-button small,
+.battle-button small {
+  display: block;
+
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+
+  opacity: 0.72;
+}
+
+.main-button:active,
+.battle-button:active {
+  transform: translateY(5px);
+  box-shadow:
+    0 2px 0 #744718,
+    0 8px 18px rgba(0,0,0,0.35);
+}
+
+.sub-button {
+  width: 100%;
+
+  margin-top: 18px;
+  padding: 15px;
+
+  color: var(--text-main);
+  font-weight: 800;
+
+  border: 1px solid var(--border);
+  border-radius: 15px;
+
+  background: rgba(255,255,255,0.05);
+}
+
+.title-footer {
+  margin-top: 28px;
+
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+
+  color: #746c7d;
+  font-size: 10px;
+}
+
+.torch {
+  position: absolute;
+  z-index: 1;
+
+  top: 20%;
+
+  font-size: 40px;
+
+  filter: drop-shadow(0 0 24px rgba(255,122,34,0.75));
+
+  animation: torchFlicker 0.6s ease-in-out infinite alternate;
+}
+
+.torch-left {
+  left: 4%;
+}
+
+.torch-right {
+  right: 4%;
+}
+
+
+/* =========================
+   ゲーム画面
+========================= */
+
+.game-screen {
+  width: min(100%, 680px);
+
+  margin: 0 auto;
+
+  padding:
+    max(18px, env(safe-area-inset-top))
+    14px
+    calc(102px + env(safe-area-inset-bottom));
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 10px 4px 18px;
+}
+
+.game-header h2 {
+  margin: 4px 0 0;
+
+  font-size: 21px;
+}
+
+.icon-button {
+  width: 48px;
+  height: 48px;
+
+  color: var(--text-main);
+  font-size: 22px;
+
+  border: 1px solid var(--border);
+  border-radius: 15px;
+
+  background: rgba(255,255,255,0.06);
+}
+
+.status-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+
+  margin-bottom: 14px;
+}
+
+.status-item {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 11px 8px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(48,39,61,0.95),
+      rgba(30,24,39,0.95)
+    );
+}
+
+.status-icon {
+  font-size: 20px;
+}
+
+.status-item div {
+  min-width: 0;
+}
+
+.status-item small {
+  display: block;
+
+  color: var(--text-sub);
+  font-size: 9px;
+}
+
+.status-item strong {
+  display: block;
+
+  margin-top: 3px;
+
+  overflow: hidden;
+
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dungeon-panel,
+.monster-panel,
+.battle-panel {
+  margin-bottom: 14px;
+  padding: 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(43,34,56,0.96),
+      rgba(25,20,34,0.98)
+    );
+
+  box-shadow: 0 14px 30px rgba(0,0,0,0.22);
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 14px;
+}
+
+.panel-heading h3 {
+  margin: 3px 0 0;
+
+  font-size: 17px;
+}
+
+.placement-status {
+  padding: 7px 10px;
+
+  color: #d8c3ff;
+  font-size: 10px;
+  font-weight: 800;
+
+  border: 1px solid rgba(143,106,200,0.35);
+  border-radius: 999px;
+
+  background: rgba(143,106,200,0.13);
+}
+
+.dungeon-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+
+  padding: 7px;
+
+  border: 2px solid #5b4b66;
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #17131d,
+      #28202f
+    );
+
+  box-shadow:
+    inset 0 0 24px rgba(0,0,0,0.52);
+}
+
+.dungeon-cell {
+  position: relative;
+
+  aspect-ratio: 1 / 1;
+
+  display: grid;
+  place-items: center;
+
+  font-size: clamp(22px, 8vw, 35px);
+
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 8px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #403748,
+      #28222f
+    );
+
+  box-shadow:
+    inset 2px 2px 0 rgba(255,255,255,0.04),
+    inset -3px -3px 0 rgba(0,0,0,0.22);
+
+  cursor: pointer;
+}
+
+.dungeon-cell::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  border-radius: inherit;
+
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 16px,
+      rgba(0,0,0,0.08) 16px 17px
+    );
+
+  pointer-events: none;
+}
+
+.dungeon-cell.entrance {
+  background:
+    linear-gradient(
+      145deg,
+      #4c473a,
+      #282620
+    );
+}
+
+.dungeon-cell.goal {
+  background:
+    linear-gradient(
+      145deg,
+      #574223,
+      #2d2419
+    );
+}
+
+.dungeon-cell.occupied {
+  border-color: rgba(118,189,101,0.6);
+  background:
+    radial-gradient(
+      circle,
+      #38553a,
+      #252c27
+    );
+}
+
+.dungeon-cell.occupied .cell-monster {
+  animation: slimeBounce 1.7s ease-in-out infinite;
+}
+
+.route-guide {
+  margin-top: 10px;
+
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+
+  color: var(--text-sub);
+  font-size: 9px;
+}
+
+.text-button {
+  padding: 7px 10px;
+
+  color: var(--text-sub);
+  font-size: 11px;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  background: rgba(255,255,255,0.04);
+}
+
+.monster-list {
+  display: grid;
+  gap: 9px;
+}
+
+.monster-card {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  align-items: center;
+  gap: 10px;
+
+  padding: 11px;
+
+  color: var(--text-main);
+  text-align: left;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background: rgba(255,255,255,0.04);
+}
+
+.monster-card.selected {
+  border-color: rgba(118,189,101,0.55);
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(72,115,71,0.34),
+      rgba(255,255,255,0.04)
+    );
+}
+
+.monster-card.locked {
+  opacity: 0.45;
+}
+
+.monster-icon {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  font-size: 26px;
+
+  border-radius: 12px;
+
+  background: rgba(0,0,0,0.2);
+}
+
+.slime-icon {
+  animation: slimeBounce 1.7s ease-in-out infinite;
+}
+
+.monster-info strong,
+.monster-info small {
+  display: block;
+}
+
+.monster-info strong {
+  font-size: 14px;
+}
+
+.monster-info small {
+  margin-top: 3px;
+
+  color: var(--text-sub);
+  font-size: 10px;
+}
+
+.monster-count {
+  color: var(--gold);
+  font-size: 13px;
+}
+
+.battle-message {
+  min-height: 22px;
+
+  margin-bottom: 12px;
+
+  color: var(--text-sub);
+  font-size: 12px;
+  text-align: center;
+}
+
+.battle-button {
+  min-height: 72px;
+
+  color: #27170a;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.battle-button:disabled {
+  opacity: 0.45;
+}
+
+.battle-button-icon {
+  font-size: 27px;
+}
+
+.bottom-nav {
+  position: fixed;
+  z-index: 20;
+
+  left: 50%;
+  bottom: 0;
+
+  width: min(100%, 680px);
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  padding:
+    10px
+    12px
+    calc(9px + env(safe-area-inset-bottom));
+
+  border-top: 1px solid var(--border);
+
+  background: rgba(17,13,23,0.94);
+  backdrop-filter: blur(15px);
+
+  transform: translateX(-50%);
+}
+
+.nav-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+
+  padding: 5px;
+
+  color: #797180;
+
+  border: 0;
+  background: transparent;
+}
+
+.nav-button span {
+  font-size: 22px;
+}
+
+.nav-button small {
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.nav-button.active {
+  color: var(--gold);
+}
+
+
+/* =========================
+   モーダル・通知
+========================= */
+
+.modal {
+  position: fixed;
+  z-index: 100;
+
+  inset: 0;
+
+  display: grid;
+  place-items: center;
+
+  padding: 24px;
+
+  background: rgba(5,4,8,0.78);
+  backdrop-filter: blur(8px);
+}
+
+.modal-card {
+  width: min(100%, 360px);
+
+  padding: 22px;
+
+  border: 1px solid rgba(242,198,109,0.28);
+  border-radius: 22px;
+
+  background: #211a2b;
+
+  box-shadow: 0 30px 70px rgba(0,0,0,0.55);
+}
+
+.modal-card h3 {
+  margin: 0 0 18px;
+
+  text-align: center;
+}
+
+.modal-button,
+.modal-close {
+  width: 100%;
+
+  margin-top: 9px;
+  padding: 14px;
+
+  color: var(--text-main);
+  font-weight: 800;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: rgba(255,255,255,0.05);
+}
+
+.modal-close {
+  color: var(--text-sub);
+  background: transparent;
+}
+
+.toast {
+  position: fixed;
+  z-index: 200;
+
+  left: 50%;
+  bottom: calc(110px + env(safe-area-inset-bottom));
+
+  padding: 11px 16px;
+
+  color: #23170c;
+  font-size: 12px;
+  font-weight: 900;
+
+  border-radius: 999px;
+
+  background: var(--gold);
+
+  box-shadow: 0 12px 26px rgba(0,0,0,0.4);
+
+  transform: translateX(-50%);
+}
+
+
+/* =========================
+   アニメーション
+========================= */
+
+@keyframes emblemFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes torchFlicker {
+  from {
+    transform: scale(0.95) rotate(-2deg);
+    opacity: 0.84;
+  }
+
+  to {
+    transform: scale(1.08) rotate(2deg);
+    opacity: 1;
+  }
+}
+
+@keyframes slimeBounce {
+  0%,
+  100% {
+    transform: scaleX(1) scaleY(1) translateY(0);
+  }
+
+  40% {
+    transform: scaleX(1.08) scaleY(0.9) translateY(3px);
+  }
+
+  65% {
+    transform: scaleX(0.94) scaleY(1.1) translateY(-3px);
+  }
+}
+
+@media (max-width: 370px) {
+  .status-icon {
+    display: none;
+  }
+
+  .status-item {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .route-guide span:nth-child(2) {
+    display: none;
+  }
+}
