@@ -1,6 +1,5 @@
 "use strict";
 
-
 const initialState = {
   gold: 500,
   wave: 1,
@@ -12,11 +11,23 @@ const initialState = {
   placedMonsters: []
 };
 
+const monsterData = {
+  slime: {
+    name: "スライム",
+    icon: "🟢",
+    maxHp: 18,
+    attack: 4
+  }
+};
 
-let gameState = structuredClone(initialState);
+let gameState = cloneData(initialState);
 let selectedMonster = "slime";
-let toastTimer = null;
 
+let battleRunning = false;
+let heroBattleState = null;
+let monsterBattleStates = {};
+
+let toastTimer = null;
 
 const titleScreen = document.getElementById("titleScreen");
 const gameScreen = document.getElementById("gameScreen");
@@ -44,13 +55,33 @@ const closeMenuButton = document.getElementById("closeMenuButton");
 
 const toast = document.getElementById("toast");
 
+/*
+  勇者が通る道。
+  上段を右へ進み、次の段を左へ進む蛇行ルート。
+*/
+const heroRoute = [
+  0, 1, 2, 3, 4,
+  9, 8, 7, 6, 5,
+  10, 11, 12, 13, 14,
+  19, 18, 17, 16, 15,
+  20, 21, 22, 23, 24
+];
+
+function cloneData(data) {
+  return JSON.parse(JSON.stringify(data));
+}
+
+function wait(milliseconds) {
+  return new Promise(resolve => {
+    setTimeout(resolve, milliseconds);
+  });
+}
 
 function initializeGame() {
   createDungeonGrid();
   updateUI();
   checkSaveData();
 }
-
 
 function createDungeonGrid() {
   dungeonGrid.innerHTML = "";
@@ -61,16 +92,6 @@ function createDungeonGrid() {
     cell.className = "dungeon-cell";
     cell.dataset.index = String(index);
 
-    if (index === 0) {
-      cell.classList.add("entrance");
-      cell.innerHTML = "<span>🚪</span>";
-    }
-
-    if (index === 24) {
-      cell.classList.add("goal");
-      cell.innerHTML = "<span>👑</span>";
-    }
-
     cell.addEventListener("click", () => {
       handleCellClick(index);
     });
@@ -78,11 +99,15 @@ function createDungeonGrid() {
     dungeonGrid.appendChild(cell);
   }
 
-  renderPlacedMonsters();
+  renderDungeon();
 }
 
-
 function handleCellClick(index) {
+  if (battleRunning) {
+    showToast("戦闘中は配置を変えられない！");
+    return;
+  }
+
   if (index === 0 || index === 24) {
     showToast("入口と魔王の間には配置できない！");
     return;
@@ -107,7 +132,7 @@ function handleCellClick(index) {
   }
 
   gameState.placedMonsters.push({
-    id: crypto.randomUUID(),
+    id: `${Date.now()}-${Math.random()}`,
     type: "slime",
     cellIndex: index
   });
@@ -115,12 +140,11 @@ function handleCellClick(index) {
   gameState.inventory.slime -= 1;
 
   battleMessage.textContent =
-    "配置完了！さらに置くか、勇者を呼び込もう。";
+    "配置完了！勇者を呼び込んでみよう。";
 
-  renderPlacedMonsters();
+  renderDungeon();
   updateUI();
 }
-
 
 function removeMonster(index) {
   const monsterIndex = gameState.placedMonsters.findIndex(
@@ -141,12 +165,16 @@ function removeMonster(index) {
   battleMessage.textContent =
     "スライムを配置から戻した。";
 
-  renderPlacedMonsters();
+  renderDungeon();
   updateUI();
 }
 
-
 function clearAllMonsters() {
+  if (battleRunning) {
+    showToast("戦闘中は解除できない！");
+    return;
+  }
+
   gameState.placedMonsters.forEach(monster => {
     if (monster.type === "slime") {
       gameState.inventory.slime += 1;
@@ -158,29 +186,42 @@ function clearAllMonsters() {
   battleMessage.textContent =
     "配置をすべて解除した。";
 
-  renderPlacedMonsters();
+  renderDungeon();
   updateUI();
 }
 
+function createMonsterBattleStates() {
+  monsterBattleStates = {};
 
-function renderPlacedMonsters() {
+  gameState.placedMonsters.forEach(monster => {
+    const data = monsterData[monster.type];
+
+    monsterBattleStates[monster.id] = {
+      hp: data.maxHp,
+      maxHp: data.maxHp,
+      defeated: false
+    };
+  });
+}
+
+function renderDungeon() {
   const cells = document.querySelectorAll(".dungeon-cell");
 
   cells.forEach((cell, index) => {
+    cell.className = "dungeon-cell";
+    cell.innerHTML = "";
+
     if (index === 0) {
-      cell.className = "dungeon-cell entrance";
-      cell.innerHTML = "<span>🚪</span>";
-      return;
+      cell.classList.add("entrance");
+      cell.innerHTML =
+        '<span class="cell-landmark">🚪</span>';
     }
 
     if (index === 24) {
-      cell.className = "dungeon-cell goal";
-      cell.innerHTML = "<span>👑</span>";
-      return;
+      cell.classList.add("goal");
+      cell.innerHTML =
+        '<span class="cell-landmark">👑</span>';
     }
-
-    cell.className = "dungeon-cell";
-    cell.innerHTML = "";
   });
 
   gameState.placedMonsters.forEach(monster => {
@@ -190,100 +231,375 @@ function renderPlacedMonsters() {
       return;
     }
 
+    const battleState =
+      monsterBattleStates[monster.id];
+
+    const defeated =
+      battleState?.defeated === true;
+
     cell.classList.add("occupied");
-    cell.innerHTML =
-      '<span class="cell-monster">🟢</span>';
+
+    if (defeated) {
+      cell.classList.add("monster-defeated");
+    }
+
+    const hp =
+      battleState?.hp ??
+      monsterData[monster.type].maxHp;
+
+    const maxHp =
+      battleState?.maxHp ??
+      monsterData[monster.type].maxHp;
+
+    const hpPercent =
+      Math.max(0, (hp / maxHp) * 100);
+
+    cell.innerHTML = `
+      <span class="cell-monster">
+        ${defeated ? "💫" : monsterData[monster.type].icon}
+      </span>
+
+      ${
+        battleRunning
+          ? `
+            <div class="unit-hp monster-hp">
+              <div
+                class="unit-hp-fill"
+                style="width:${hpPercent}%"
+              ></div>
+            </div>
+          `
+          : ""
+      }
+    `;
   });
+
+  if (heroBattleState) {
+    const heroCell =
+      cells[heroBattleState.cellIndex];
+
+    if (heroCell) {
+      const heroHpPercent =
+        Math.max(
+          0,
+          (
+            heroBattleState.hp /
+            heroBattleState.maxHp
+          ) * 100
+        );
+
+      const heroElement =
+        document.createElement("div");
+
+      heroElement.className = "hero-unit";
+
+      heroElement.innerHTML = `
+        <span class="hero-icon">🧑‍⚔️</span>
+
+        <div class="unit-hp hero-hp">
+          <div
+            class="unit-hp-fill hero-hp-fill"
+            style="width:${heroHpPercent}%"
+          ></div>
+        </div>
+      `;
+
+      heroCell.appendChild(heroElement);
+      heroCell.classList.add("hero-present");
+    }
+  }
 }
 
+async function startBattle() {
+  if (battleRunning) {
+    return;
+  }
 
-function startBattle() {
-  const monsterCount = gameState.placedMonsters.length;
-
-  if (monsterCount === 0) {
+  if (gameState.placedMonsters.length === 0) {
     showToast("まずは魔物を配置しよう！");
     return;
   }
 
+  battleRunning = true;
   battleButton.disabled = true;
+  clearButton.disabled = true;
 
-  let countdown = 3;
+  createMonsterBattleStates();
+
+  const heroMaxHp =
+    24 + gameState.wave * 8;
+
+  heroBattleState = {
+    hp: heroMaxHp,
+    maxHp: heroMaxHp,
+    attack: 5 + Math.floor(gameState.wave * 1.5),
+    cellIndex: 0
+  };
+
+  renderDungeon();
+
+  for (
+    let countdown = 3;
+    countdown >= 1;
+    countdown -= 1
+  ) {
+    battleMessage.textContent =
+      `勇者侵入まで ${countdown}…`;
+
+    await wait(650);
+  }
 
   battleMessage.textContent =
-    `勇者侵入まで ${countdown}…`;
+    "勇者がダンジョンへ侵入した！";
 
-  const countdownTimer = setInterval(() => {
-    countdown -= 1;
+  await wait(500);
 
-    if (countdown > 0) {
-      battleMessage.textContent =
-        `勇者侵入まで ${countdown}…`;
+  for (
+    let routeIndex = 0;
+    routeIndex < heroRoute.length;
+    routeIndex += 1
+  ) {
+    heroBattleState.cellIndex =
+      heroRoute[routeIndex];
 
+    renderDungeon();
+
+    await wait(420);
+
+    if (heroBattleState.cellIndex === 24) {
+      await handleHeroReachedGoal();
       return;
     }
 
-    clearInterval(countdownTimer);
+    const monster =
+      gameState.placedMonsters.find(item => {
+        return (
+          item.cellIndex === heroBattleState.cellIndex &&
+          !monsterBattleStates[item.id]?.defeated
+        );
+      });
 
-    resolveBattle();
-  }, 650);
-}
+    if (monster) {
+      const heroWon =
+        await fightMonster(monster);
 
-
-function resolveBattle() {
-  const defensePower =
-    gameState.placedMonsters.length * 18;
-
-  const heroPower =
-    14 + gameState.wave * 8;
-
-  const randomBonus =
-    Math.floor(Math.random() * 21);
-
-  const finalDefense =
-    defensePower + randomBonus;
-
-  if (finalDefense >= heroPower) {
-    handleVictory(finalDefense, heroPower);
-  } else {
-    handleDefeat(finalDefense, heroPower);
+      if (!heroWon) {
+        await handleHeroDefeated();
+        return;
+      }
+    }
   }
 }
 
+async function fightMonster(monster) {
+  const monsterInfo =
+    monsterData[monster.type];
 
-function handleVictory(defensePower, heroPower) {
+  const monsterState =
+    monsterBattleStates[monster.id];
+
+  battleMessage.textContent =
+    `勇者と${monsterInfo.name}が戦闘開始！`;
+
+  await wait(400);
+
+  while (
+    heroBattleState.hp > 0 &&
+    monsterState.hp > 0
+  ) {
+    /*
+      勇者の攻撃
+    */
+    const heroDamage =
+      Math.max(
+        1,
+        heroBattleState.attack +
+        Math.floor(Math.random() * 5) - 2
+      );
+
+    monsterState.hp -= heroDamage;
+
+    showDamage(
+      monster.cellIndex,
+      heroDamage,
+      "hero-attack"
+    );
+
+    shakeCell(monster.cellIndex);
+
+    renderDungeon();
+
+    await wait(550);
+
+    if (monsterState.hp <= 0) {
+      monsterState.hp = 0;
+      monsterState.defeated = true;
+
+      renderDungeon();
+
+      battleMessage.textContent =
+        `${monsterInfo.name}が倒された！勇者は先へ進む。`;
+
+      await wait(700);
+
+      return true;
+    }
+
+    /*
+      モンスターの攻撃
+    */
+    const monsterDamage =
+      Math.max(
+        1,
+        monsterInfo.attack +
+        Math.floor(Math.random() * 4) - 1
+      );
+
+    heroBattleState.hp -= monsterDamage;
+
+    showDamage(
+      monster.cellIndex,
+      monsterDamage,
+      "monster-attack"
+    );
+
+    shakeHero();
+
+    renderDungeon();
+
+    battleMessage.textContent =
+      `${monsterInfo.name}の体当たり！ 勇者に${monsterDamage}ダメージ！`;
+
+    await wait(550);
+
+    if (heroBattleState.hp <= 0) {
+      heroBattleState.hp = 0;
+
+      renderDungeon();
+
+      return false;
+    }
+  }
+
+  return heroBattleState.hp > 0;
+}
+
+function showDamage(
+  cellIndex,
+  damage,
+  attackType
+) {
+  const cells =
+    document.querySelectorAll(".dungeon-cell");
+
+  const cell = cells[cellIndex];
+
+  if (!cell) {
+    return;
+  }
+
+  const damageElement =
+    document.createElement("span");
+
+  damageElement.className =
+    `damage-number ${attackType}`;
+
+  damageElement.textContent =
+    `-${damage}`;
+
+  cell.appendChild(damageElement);
+
+  setTimeout(() => {
+    damageElement.remove();
+  }, 800);
+}
+
+function shakeCell(cellIndex) {
+  const cells =
+    document.querySelectorAll(".dungeon-cell");
+
+  const cell = cells[cellIndex];
+
+  if (!cell) {
+    return;
+  }
+
+  cell.classList.remove("cell-hit");
+
+  void cell.offsetWidth;
+
+  cell.classList.add("cell-hit");
+
+  setTimeout(() => {
+    cell.classList.remove("cell-hit");
+  }, 350);
+}
+
+function shakeHero() {
+  const hero =
+    document.querySelector(".hero-unit");
+
+  if (!hero) {
+    return;
+  }
+
+  hero.classList.remove("hero-hit");
+
+  void hero.offsetWidth;
+
+  hero.classList.add("hero-hit");
+}
+
+async function handleHeroDefeated() {
   const reward =
     45 + gameState.wave * 15;
+
+  battleMessage.textContent =
+    `勇者撃退成功！ +${reward}G`;
+
+  showToast(`勇者撃退！ +${reward}G`);
+
+  await wait(600);
 
   gameState.gold += reward;
   gameState.wave += 1;
 
-  battleMessage.textContent =
-    `勇者撃退！ 防衛力${defensePower} VS 勇者${heroPower}　+${reward}G`;
+  heroBattleState = null;
 
-  showToast(`勇者撃退！ +${reward}G`);
-
-  updateUI();
-
-  battleButton.disabled = false;
+  finishBattle();
 }
 
-
-function handleDefeat(defensePower, heroPower) {
+async function handleHeroReachedGoal() {
   const penalty =
-    Math.min(gameState.gold, 30);
+    Math.min(
+      gameState.gold,
+      30 + gameState.wave * 5
+    );
 
   gameState.gold -= penalty;
 
   battleMessage.textContent =
-    `侵入を許した…。防衛力${defensePower} VS 勇者${heroPower}　-${penalty}G`;
+    `勇者が魔王の間へ到達！ -${penalty}G`;
 
   showToast(`防衛失敗… -${penalty}G`);
 
-  updateUI();
+  await wait(900);
 
-  battleButton.disabled = false;
+  heroBattleState = null;
+
+  finishBattle();
 }
 
+function finishBattle() {
+  battleRunning = false;
+  battleButton.disabled = false;
+  clearButton.disabled = false;
+
+  monsterBattleStates = {};
+
+  renderDungeon();
+  updateUI();
+}
 
 function updateUI() {
   goldDisplay.textContent =
@@ -295,13 +611,21 @@ function updateUI() {
   slimeCount.textContent =
     String(gameState.inventory.slime);
 
-  battleButton.querySelector("small").textContent =
-    `WAVE ${gameState.wave} START`;
+  const battleButtonText =
+    battleButton.querySelector("small");
+
+  if (battleButtonText) {
+    battleButtonText.textContent =
+      `WAVE ${gameState.wave} START`;
+  }
 }
 
-
 function startNewGame() {
-  gameState = structuredClone(initialState);
+  gameState = cloneData(initialState);
+
+  battleRunning = false;
+  heroBattleState = null;
+  monsterBattleStates = {};
 
   titleScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
@@ -313,8 +637,12 @@ function startNewGame() {
     "スライムをマスに配置しよう。";
 }
 
-
 function saveGame() {
+  if (battleRunning) {
+    showToast("戦闘終了後にセーブしてね！");
+    return;
+  }
+
   localStorage.setItem(
     "dungeonManagerSave",
     JSON.stringify(gameState)
@@ -324,7 +652,6 @@ function saveGame() {
   closeMenu();
   checkSaveData();
 }
-
 
 function loadGame() {
   const saveData =
@@ -337,6 +664,10 @@ function loadGame() {
   try {
     gameState = JSON.parse(saveData);
 
+    battleRunning = false;
+    heroBattleState = null;
+    monsterBattleStates = {};
+
     titleScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
 
@@ -348,10 +679,11 @@ function loadGame() {
   } catch (error) {
     console.error(error);
 
-    showToast("セーブデータの読み込みに失敗した");
+    showToast(
+      "セーブデータの読み込みに失敗した"
+    );
   }
 }
-
 
 function checkSaveData() {
   const saveData =
@@ -363,18 +695,20 @@ function checkSaveData() {
   );
 }
 
-
 function openMenu() {
   menuModal.classList.remove("hidden");
 }
-
 
 function closeMenu() {
   menuModal.classList.add("hidden");
 }
 
-
 function returnToTitle() {
+  if (battleRunning) {
+    showToast("戦闘中はタイトルへ戻れない！");
+    return;
+  }
+
   closeMenu();
 
   gameScreen.classList.add("hidden");
@@ -382,7 +716,6 @@ function returnToTitle() {
 
   checkSaveData();
 }
-
 
 function showToast(message) {
   toast.textContent = message;
@@ -396,7 +729,6 @@ function showToast(message) {
     toast.classList.add("hidden");
   }, 1900);
 }
-
 
 startButton.addEventListener(
   "click",
@@ -446,6 +778,5 @@ menuModal.addEventListener(
     }
   }
 );
-
 
 initializeGame();
