@@ -1,107 +1,20 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>ダンジョン経営</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <main id="titleScreen" class="screen title-screen">
-    <div class="torch torch-left">🔥</div><div class="torch torch-right">🔥</div>
-    <section class="title-card">
-      <div class="title-emblem">🏰</div>
-      <p class="eyebrow">DUNGEON MANAGEMENT</p>
-      <h1>ダンジョン経営</h1>
-      <p class="title-copy">部族を集め、合成し、装備を整え、<br>学習する勇者から魔王を守れ。</p>
-      <button id="newGameButton" class="primary-btn"><span>ゲーム開始</span><small>NEW GAME</small></button>
-      <button id="continueButton" class="secondary-btn hidden">続きから</button>
-      <div class="title-footer"><span>部族育成×防衛</span><span>Ver. 0.3</span></div>
-    </section>
-  </main>
-
-  <main id="gameScreen" class="screen game-screen hidden">
-    <header class="topbar">
-      <div><p class="eyebrow">DUNGEON</p><h2 id="dungeonTitle">第1地下迷宮</h2></div>
-      <button id="menuButton" class="icon-btn">☰</button>
-    </header>
-
-    <section class="status-grid">
-      <div class="status-card"><span>💰</span><div><small>GOLD</small><b id="goldText">500</b></div></div>
-      <div class="status-card"><span>💎</span><div><small>魔晶石</small><b id="gemText">0</b></div></div>
-      <div class="status-card"><span>🗺️</span><div><small>STAGE</small><b id="stageText">1</b></div></div>
-      <div class="status-card"><span>⚔️</span><div><small>WAVE</small><b id="waveText">1/5</b></div></div>
-    </section>
-
-    <section class="boss-panel">
-      <div class="row-between"><strong>👑 魔王</strong><b id="bossHpText">100 / 100</b></div>
-      <div class="bar"><div id="bossHpFill" class="bar-fill boss-fill"></div></div>
-      <small id="bossMessage">魔王は玉座で待ち構えている。</small>
-    </section>
-
-    <section id="pageDungeon" class="page active-page">
-      <section class="panel">
-        <div class="panel-head"><div><p class="eyebrow">FLOOR MAP</p><h3>侵入経路</h3></div><span id="placementMode" class="pill">配置モード</span></div>
-        <div class="legend"><span>🚪入口</span><span>🪨岩</span><span>👑魔王</span><span>🟢魔物</span></div>
-        <div id="dungeonGrid" class="dungeon-grid"></div>
-        <p id="routeInfo" class="hint">勇者は岩を避けて最短経路を進む。</p>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head"><div><p class="eyebrow">HAND</p><h3>配置する魔物</h3></div><button id="clearButton" class="mini-btn">全解除</button></div>
-        <p class="hint">空きマスからなぞると連続配置。配置済みからなぞると連続撤去。</p>
-        <div id="handList" class="hand-list"></div>
-      </section>
-
-      <section class="panel battle-panel">
-        <div id="battleLog" class="battle-log">魔物を配置しよう。</div>
-        <button id="battleButton" class="primary-btn battle-btn"><span>⚔️ 勇者を呼び込む</span><small>STAGE 1・WAVE 1</small></button>
-      </section>
-    </section>
-
-    <section id="pageGacha" class="page">
-      <section class="panel">
-        <div class="panel-head"><div><p class="eyebrow">SUMMON</p><h3>魔物ガチャ</h3></div><span id="dailyBadge" class="pill">無料1回</span></div>
-        <div class="gacha-grid">
-          <article class="gacha-card"><h4>デイリー召喚</h4><p>1日1回無料。部族・個体・装備・素材が排出。</p><button id="dailyGachaButton" class="primary-btn compact">無料で引く</button></article>
-          <article class="gacha-card"><h4>ノーマルガチャ</h4><p id="normalRates">N 80% / R 18% / SR 2%</p><button id="normalGachaButton" class="secondary-btn compact">300Gで引く</button><small id="normalPity">天井 0 / 50</small></article>
-          <article class="gacha-card premium"><h4>プレミアガチャ</h4><p id="premiumRates">R 65% / SR 30% / SSR 5%</p><button id="premiumGachaButton" class="primary-btn compact">💎3で引く</button><small id="premiumPity">天井 0 / 30</small></article>
-        </div>
-      </section>
-      <section class="panel"><div class="panel-head"><div><p class="eyebrow">RESULT</p><h3>直近の召喚結果</h3></div></div><div id="gachaHistory" class="history-list"></div></section>
-    </section>
-
-    <section id="pageEnhance" class="page">
-      <section class="panel">
-        <div class="panel-head"><div><p class="eyebrow">TRIBE FUSION</p><h3>魔物強化</h3></div></div>
-        <div id="enhanceList" class="card-list"></div>
-      </section>
-    </section>
-
-    <section id="pageStatus" class="page">
-      <section class="panel">
-        <div class="panel-head"><div><p class="eyebrow">STATUS & EQUIPMENT</p><h3>部族ステータス</h3></div></div>
-        <div id="statusList" class="card-list"></div>
-      </section>
-      <section class="panel"><div class="panel-head"><div><p class="eyebrow">EQUIPMENT</p><h3>装備倉庫</h3></div></div><div id="equipmentInventory" class="equipment-list"></div></section>
-    </section>
-
-    <section id="pageCodex" class="page">
-      <section class="panel"><div class="panel-head"><div><p class="eyebrow">RECORDS</p><h3>図鑑・実績</h3></div></div><div id="codexContent"></div></section>
-    </section>
-
-    <nav class="bottom-nav">
-      <button data-page="Dungeon" class="nav-btn active"><span>🏰</span><small>迷宮</small></button>
-      <button data-page="Gacha" class="nav-btn"><span>🎰</span><small>召喚</small></button>
-      <button data-page="Enhance" class="nav-btn"><span>✨</span><small>強化</small></button>
-      <button data-page="Status" class="nav-btn"><span>🧬</span><small>部族</small></button>
-      <button data-page="Codex" class="nav-btn"><span>📖</span><small>図鑑</small></button>
-    </nav>
-  </main>
-
-  <div id="menuModal" class="modal hidden"><div class="modal-card"><h3>魔王メニュー</h3><button id="saveButton" class="modal-btn">💾 セーブ</button><button id="titleButton" class="modal-btn">🏰 タイトルへ</button><button id="closeMenuButton" class="modal-btn ghost">閉じる</button></div></div>
-  <div id="resultModal" class="modal hidden"><div class="modal-card result-card"><div id="resultIcon" class="result-icon">✨</div><h3 id="resultTitle">獲得！</h3><p id="resultBody"></p><button id="closeResultButton" class="primary-btn compact">OK</button></div></div>
-  <div id="toast" class="toast hidden"></div>
-  <script src="script.js"></script>
-</body>
-</html>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>ABYSS DOMINION v0.1</title><link rel="stylesheet" href="style.css"></head><body>
+<div id="app">
+<header><div><small>ABYSS DOMINION</small><h1>地下1000階の魔王</h1></div><button id="menu">☰</button></header>
+<div class="stats"><div>💰<b id="gold"></b></div><div>💎<b id="crystal"></b></div><div>🏰<b id="floor"></b></div><div>👑<b id="lord"></b></div></div>
+<main id="home" class="screen active">
+<section><h2>魔王城</h2><p>仮素材だけで中毒性を検証する Ver0.1。</p><div class="grid2"><button id="start" class="primary">⚔ 挑戦開始</button><button id="summon">🌀 召喚</button><button id="party">👾 編成</button><button id="reset" class="danger">初期化</button></div><p class="note">全操作リアルタイム保存。Safariを閉じても続きから再開。</p></section>
+<section><h2>所持魔物</h2><div id="inventory"></div></section></main>
+<main id="battle" class="screen">
+<section><div class="row"><div><small id="kind"></small><h2 id="battleTitle"></h2></div><span id="mode">準備中</span></div>
+<div class="barrow"><span>魔王</span><div class="bar"><i id="lordbar"></i></div><b id="lordtxt"></b></div>
+<div class="barrow"><span>コスト</span><div class="bar cost"><i id="costbar"></i></div><b id="costtxt"></b></div>
+<p class="note">🚪入口　🪨岩　👑魔王　●魔物　🧑勇者</p><div id="board"></div>
+<div class="controls"><button id="begin" class="primary">戦闘開始</button><button id="pause">⏸</button><button id="retreat" class="danger">帰還</button></div></section>
+<section><h2>控え召喚</h2><div id="hand"></div></section>
+<section><h2>魔王スキル</h2><div class="grid2"><button data-skill="thunder">⚡落雷 12</button><button data-skill="haste">🏃加速 10</button><button data-skill="barrier">🛡結界 14</button><button data-skill="surge">🌀召喚促進 16</button></div></section>
+<section><h2>戦況</h2><div id="log"></div></section></main>
+<main id="reward" class="screen"><section><small>FLOOR CLEAR</small><h2>報酬を1つ選ぶ</h2><div id="choices"></div></section></main>
+<main id="result" class="screen"><section class="center"><small id="resEye"></small><h2 id="resTitle"></h2><div id="resBody"></div><button id="homeBtn" class="primary">魔王城へ</button></section></main>
+<dialog id="modal"><button id="close">×</button><div id="modalBody"></div></dialog>
+</div><script src="script.js"></script></body></html>
