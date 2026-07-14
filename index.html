@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#0a0610">
-  <title>Abyss Dominion Maze v0.5</title>
+  <meta name="theme-color" content="#0a0710">
+  <title>ABYSS DOMINION α v0.6</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,9 +26,9 @@
 
   <section id="homeScreen" class="screen active">
     <div class="panel heroPanel">
-      <div class="eyebrow">探索型Canvas試作版</div>
-      <h2>迷路を選び、敵を見つけ、戦う。</h2>
-      <p>分岐をタップして探索。敵・宝箱・出口を探しながら、魔物ごとの攻撃と戦績を確認できる。</p>
+      <div class="eyebrow">探索α版</div>
+      <h2>洞窟を、自分で歩く。</h2>
+      <p>見下ろし型の迷宮をタップ移動。敵は巡回し、宝箱と階段は自分で探す。</p>
       <button id="startBtn" class="primary big">挑戦開始</button>
     </div>
     <div class="panel">
@@ -40,13 +40,8 @@
   <section id="gameScreen" class="screen">
     <div class="canvasFrame">
       <canvas id="gameCanvas" width="720" height="980"></canvas>
-      <div id="choiceOverlay" class="choiceOverlay hidden">
-        <div class="choiceBox">
-          <div class="eyebrow">分岐</div>
-          <h2>進む方向を選ぶ</h2>
-          <div id="directionButtons" class="directionButtons"></div>
-        </div>
-      </div>
+      <div id="toast" class="toast hidden"></div>
+      <div id="rewardLock" class="rewardLock hidden"></div>
     </div>
 
     <div class="skillGrid">
@@ -57,8 +52,8 @@
     </div>
 
     <div class="controlRow">
-      <button id="mapBtn">🗺 マップ</button>
       <button id="pauseBtn">⏸ 一時停止</button>
+      <button id="centerBtn">🎯 現在地</button>
       <button id="returnBtn" class="danger">帰還</button>
     </div>
   </section>
@@ -67,6 +62,7 @@
     <div class="panel rewardPanel">
       <div class="eyebrow">FLOOR CLEAR</div>
       <h2>報酬を1つ選ぶ</h2>
+      <div id="battleSummary"></div>
       <div id="rewardChoices" class="rewardChoices"></div>
     </div>
   </section>
