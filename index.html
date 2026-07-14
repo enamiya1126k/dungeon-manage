@@ -1,20 +1,137 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>ABYSS DOMINION v0.1</title><link rel="stylesheet" href="style.css"></head><body>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#100b18">
+  <title>Abyss Dominion RPG v0.2</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 <div id="app">
-<header><div><small>ABYSS DOMINION</small><h1>地下1000階の魔王</h1></div><button id="menu">☰</button></header>
-<div class="stats"><div>💰<b id="gold"></b></div><div>💎<b id="crystal"></b></div><div>🏰<b id="floor"></b></div><div>👑<b id="lord"></b></div></div>
-<main id="home" class="screen active">
-<section><h2>魔王城</h2><p>仮素材だけで中毒性を検証する Ver0.1。</p><div class="grid2"><button id="start" class="primary">⚔ 挑戦開始</button><button id="summon">🌀 召喚</button><button id="party">👾 編成</button><button id="reset" class="danger">初期化</button></div><p class="note">全操作リアルタイム保存。Safariを閉じても続きから再開。</p></section>
-<section><h2>所持魔物</h2><div id="inventory"></div></section></main>
-<main id="battle" class="screen">
-<section><div class="row"><div><small id="kind"></small><h2 id="battleTitle"></h2></div><span id="mode">準備中</span></div>
-<div class="barrow"><span>魔王</span><div class="bar"><i id="lordbar"></i></div><b id="lordtxt"></b></div>
-<div class="barrow"><span>コスト</span><div class="bar cost"><i id="costbar"></i></div><b id="costtxt"></b></div>
-<p class="note">🚪入口　🪨岩　👑魔王　●魔物　🧑勇者</p><div id="board"></div>
-<div class="controls"><button id="begin" class="primary">戦闘開始</button><button id="pause">⏸</button><button id="retreat" class="danger">帰還</button></div></section>
-<section><h2>控え召喚</h2><div id="hand"></div></section>
-<section><h2>魔王スキル</h2><div class="grid2"><button data-skill="thunder">⚡落雷 12</button><button data-skill="haste">🏃加速 10</button><button data-skill="barrier">🛡結界 14</button><button data-skill="surge">🌀召喚促進 16</button></div></section>
-<section><h2>戦況</h2><div id="log"></div></section></main>
-<main id="reward" class="screen"><section><small>FLOOR CLEAR</small><h2>報酬を1つ選ぶ</h2><div id="choices"></div></section></main>
-<main id="result" class="screen"><section class="center"><small id="resEye"></small><h2 id="resTitle"></h2><div id="resBody"></div><button id="homeBtn" class="primary">魔王城へ</button></section></main>
-<dialog id="modal"><button id="close">×</button><div id="modalBody"></div></dialog>
-</div><script src="script.js"></script></body></html>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">ABYSS DOMINION</div>
+      <h1>地下1000階の魔王</h1>
+    </div>
+    <button id="menuBtn" class="iconBtn">☰</button>
+  </header>
+
+  <section class="hud">
+    <div><span>階層</span><b id="floorText">1</b></div>
+    <div><span>ゴールド</span><b id="goldText">500</b></div>
+    <div><span>魔晶石</span><b id="crystalText">3</b></div>
+    <div><span>魔王HP</span><b id="lordHpText">100</b></div>
+  </section>
+
+  <main>
+    <section id="homeScreen" class="screen active">
+      <div class="panel heroPanel">
+        <div class="eyebrow">魔王城</div>
+        <h2>1000階踏破へ</h2>
+        <p>4体編成の半リアルタイムRPG。HPは階層間で持ち越す。</p>
+        <div class="homeActions">
+          <button id="startBtn" class="primary">挑戦開始</button>
+          <button id="partyBtn">パーティ編成</button>
+          <button id="summonBtn">召喚</button>
+          <button id="resetBtn" class="danger">セーブ初期化</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>現在のパーティ</h3>
+        <div id="homeParty" class="partyList"></div>
+      </div>
+
+      <div class="panel">
+        <h3>所持魔物</h3>
+        <div id="inventoryList" class="inventory"></div>
+      </div>
+    </section>
+
+    <section id="battleScreen" class="screen">
+      <div class="panel battlePanel">
+        <div class="battleTitleRow">
+          <div>
+            <div id="floorKind" class="eyebrow">通常戦</div>
+            <h2 id="battleTitle">第1階</h2>
+          </div>
+          <div id="battleState" class="badge">戦闘中</div>
+        </div>
+
+        <div class="lordRow">
+          <span>👑 魔王</span>
+          <div class="bar"><i id="lordBar"></i></div>
+          <b id="lordHpBattle">100 / 100</b>
+        </div>
+
+        <div class="battlefield">
+          <div>
+            <h3>魔王軍</h3>
+            <div id="allyField" class="unitGrid"></div>
+          </div>
+          <div>
+            <h3>勇者隊</h3>
+            <div id="enemyField" class="unitGrid"></div>
+          </div>
+        </div>
+
+        <div class="commandPanel">
+          <div>
+            <div class="commandHeader">
+              <b id="activeUnitName">行動待ち</b>
+              <span id="commandHint">ゲージが溜まると操作できる</span>
+            </div>
+            <div id="commandButtons" class="commandButtons"></div>
+          </div>
+          <div>
+            <h3>魔王スキル</h3>
+            <div class="skillGrid">
+              <button data-skill="thunder">⚡ 落雷<small>CT 12秒</small></button>
+              <button data-skill="haste">🏃 加速<small>CT 16秒</small></button>
+              <button data-skill="barrier">🛡 結界<small>CT 18秒</small></button>
+              <button data-skill="surge">🌀 召喚促進<small>控えと交代</small></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="battleActions">
+          <button id="pauseBtn">⏸ 一時停止</button>
+          <button id="retreatBtn" class="danger">帰還</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>戦況</h3>
+        <div id="battleLog" class="battleLog"></div>
+      </div>
+    </section>
+
+    <section id="rewardScreen" class="screen">
+      <div class="panel rewardPanel">
+        <div class="eyebrow">FLOOR CLEAR</div>
+        <h2>報酬を1つ選ぶ</h2>
+        <div id="rewardChoices" class="rewardChoices"></div>
+      </div>
+    </section>
+
+    <section id="resultScreen" class="screen">
+      <div class="panel resultPanel">
+        <div id="resultEyebrow" class="eyebrow">RETURN</div>
+        <h2 id="resultTitle">帰還</h2>
+        <div id="resultBody"></div>
+        <button id="resultHomeBtn" class="primary">魔王城へ</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="modal">
+    <form method="dialog">
+      <button class="modalClose">×</button>
+      <div id="modalBody"></div>
+    </form>
+  </dialog>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
