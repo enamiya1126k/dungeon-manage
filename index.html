@@ -3,84 +3,90 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#0b0710">
-  <title>Abyss Dominion Canvas v0.4</title>
+  <meta name="theme-color" content="#0a0610">
+  <title>Abyss Dominion Maze v0.5</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="app">
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">ABYSS DOMINION</div>
-        <h1>Canvas Battle Prototype</h1>
-      </div>
-      <button id="menuBtn" class="iconBtn">☰</button>
-    </header>
+<div id="app">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">ABYSS DOMINION</div>
+      <h1>地下1000階の魔王</h1>
+    </div>
+    <button id="menuBtn" class="iconBtn">☰</button>
+  </header>
 
-    <section class="hud">
-      <div><span>FLOOR</span><b id="floorText">1</b></div>
-      <div><span>GOLD</span><b id="goldText">0</b></div>
-      <div><span>DPS</span><b id="dpsText">0</b></div>
-      <div><span>STREAK</span><b id="streakText">0</b></div>
-    </section>
+  <section class="hud">
+    <div><span>FLOOR</span><b id="floorText">1</b></div>
+    <div><span>GOLD</span><b id="goldText">0</b></div>
+    <div><span>DPS</span><b id="dpsText">0</b></div>
+    <div><span>STREAK</span><b id="streakText">0</b></div>
+  </section>
 
-    <section id="homeScreen" class="screen active">
-      <div class="panel heroPanel">
-        <div class="eyebrow">30秒で面白いか検証する版</div>
-        <h2>歩く。ぶつかる。殴る。光る。</h2>
-        <p>パーティーは自動戦闘。残HP・リアルダメージ・DPS・スキル演出を全部見える形にした。</p>
-        <button id="startBtn" class="primary big">挑戦開始</button>
-      </div>
-      <div class="panel">
-        <h3>恒久強化</h3>
-        <div id="upgradeList" class="upgradeList"></div>
-      </div>
-    </section>
+  <section id="homeScreen" class="screen active">
+    <div class="panel heroPanel">
+      <div class="eyebrow">探索型Canvas試作版</div>
+      <h2>迷路を選び、敵を見つけ、戦う。</h2>
+      <p>分岐をタップして探索。敵・宝箱・出口を探しながら、魔物ごとの攻撃と戦績を確認できる。</p>
+      <button id="startBtn" class="primary big">挑戦開始</button>
+    </div>
+    <div class="panel">
+      <h3>恒久強化</h3>
+      <div id="upgradeList" class="upgradeList"></div>
+    </div>
+  </section>
 
-    <section id="gameScreen" class="screen">
-      <div class="canvasFrame">
-        <canvas id="gameCanvas" width="720" height="980"></canvas>
-        <div id="overlayMessage" class="overlayMessage hidden"></div>
+  <section id="gameScreen" class="screen">
+    <div class="canvasFrame">
+      <canvas id="gameCanvas" width="720" height="980"></canvas>
+      <div id="choiceOverlay" class="choiceOverlay hidden">
+        <div class="choiceBox">
+          <div class="eyebrow">分岐</div>
+          <h2>進む方向を選ぶ</h2>
+          <div id="directionButtons" class="directionButtons"></div>
+        </div>
       </div>
+    </div>
 
-      <div class="skillGrid">
-        <button data-skill="thunder"><span>⚡</span><b>落雷</b><small id="thunderCd">READY</small></button>
-        <button data-skill="heal"><span>💚</span><b>回復</b><small id="healCd">READY</small></button>
-        <button data-skill="barrier"><span>🛡</span><b>結界</b><small id="barrierCd">READY</small></button>
-        <button data-skill="burst"><span>🔥</span><b>総攻撃</b><small id="burstCd">READY</small></button>
-      </div>
+    <div class="skillGrid">
+      <button data-skill="thunder"><span>⚡</span><b>落雷</b><small id="thunderCd">READY</small></button>
+      <button data-skill="heal"><span>💚</span><b>回復</b><small id="healCd">READY</small></button>
+      <button data-skill="barrier"><span>🛡</span><b>結界</b><small id="barrierCd">READY</small></button>
+      <button data-skill="burst"><span>🔥</span><b>総攻撃</b><small id="burstCd">READY</small></button>
+    </div>
 
-      <div class="controlRow">
-        <button id="speedBtn">⏩ ×1</button>
-        <button id="pauseBtn">⏸ 一時停止</button>
-        <button id="returnBtn" class="danger">帰還</button>
-      </div>
-    </section>
+    <div class="controlRow">
+      <button id="mapBtn">🗺 マップ</button>
+      <button id="pauseBtn">⏸ 一時停止</button>
+      <button id="returnBtn" class="danger">帰還</button>
+    </div>
+  </section>
 
-    <section id="rewardScreen" class="screen">
-      <div class="panel rewardPanel">
-        <div class="eyebrow">FLOOR CLEAR</div>
-        <h2>報酬を1つ選ぶ</h2>
-        <div id="rewardChoices" class="rewardChoices"></div>
-      </div>
-    </section>
+  <section id="rewardScreen" class="screen">
+    <div class="panel rewardPanel">
+      <div class="eyebrow">FLOOR CLEAR</div>
+      <h2>報酬を1つ選ぶ</h2>
+      <div id="rewardChoices" class="rewardChoices"></div>
+    </div>
+  </section>
 
-    <section id="resultScreen" class="screen">
-      <div class="panel resultPanel">
-        <div id="resultEye" class="eyebrow">RETURN</div>
-        <h2 id="resultTitle">帰還</h2>
-        <div id="resultBody"></div>
-        <button id="homeBtn" class="primary">魔王城へ</button>
-      </div>
-    </section>
+  <section id="resultScreen" class="screen">
+    <div class="panel resultPanel">
+      <div id="resultEye" class="eyebrow">RETURN</div>
+      <h2 id="resultTitle">帰還</h2>
+      <div id="resultBody"></div>
+      <button id="homeBtn" class="primary">魔王城へ</button>
+    </div>
+  </section>
 
-    <dialog id="modal">
-      <form method="dialog">
-        <button class="closeBtn">×</button>
-        <div id="modalBody"></div>
-      </form>
-    </dialog>
-  </div>
-  <script src="script.js"></script>
+  <dialog id="modal">
+    <form method="dialog">
+      <button class="closeBtn">×</button>
+      <div id="modalBody"></div>
+    </form>
+  </dialog>
+</div>
+<script src="script.js"></script>
 </body>
 </html>
