@@ -1,53 +1,433 @@
-(()=>{"use strict";
-const K="abyssDominion_v01";
-const M={
-slime:{name:"スライム",icon:"●",cls:"slime",hp:10,atk:2,def:0,int:1,range:1,sight:2,cost:1,score:100},
-goblin:{name:"ゴブリン",icon:"◆",cls:"goblin",hp:18,atk:4,def:1,int:1,range:1,sight:3,cost:2,score:120},
-plant:{name:"植物",icon:"✿",cls:"plant",hp:16,atk:1,def:1,int:1.5,range:3,sight:3,cost:3,score:150,heal:1},
-orc:{name:"オーク",icon:"⬟",cls:"orc",hp:28,atk:8,def:3,int:1.2,range:1,sight:2,cost:5,score:180},
-fairy:{name:"妖精",icon:"✦",cls:"fairy",hp:12,atk:2,def:0,int:1.4,range:4,sight:4,cost:5,score:300,heal:1},
-demon:{name:"悪魔",icon:"✧",cls:"demon",hp:30,atk:7,def:2,int:1.1,range:3,sight:4,cost:8,score:400},
-golem:{name:"ゴーレム",icon:"■",cls:"golem",hp:70,atk:6,def:8,int:2,range:1,sight:2,cost:10,score:500},
-dragon:{name:"ドラゴン",icon:"▲",cls:"dragon",hp:120,atk:40,def:6,int:8,range:5,sight:6,cost:15,score:700,aoe:1}
+(() => {
+'use strict';
+
+const SAVE_KEY='abyssDominion_rpg_v02';
+
+const MONSTERS={
+  slime:{name:'スライム',cls:'slime',icon:'●',hp:10,atk:2,def:0,speed:1.0,skills:[
+    {id:'attack',name:'体当たり',power:1.0,target:'enemy'},
+    {id:'guard',name:'かばう',kind:'guard'},
+    {id:'slow',name:'粘液',power:.6,target:'enemy',status:'slow',turns:5}
+  ]},
+  goblin:{name:'ゴブリン',cls:'goblin',icon:'◆',hp:18,atk:4,def:1,speed:1.4,skills:[
+    {id:'attack',name:'斬りつけ',power:1.0,target:'enemy'},
+    {id:'double',name:'連撃',power:.7,hits:2,target:'enemy'},
+    {id:'guard',name:'防御',kind:'guard'}
+  ]},
+  fairy:{name:'妖精',cls:'fairy',icon:'✦',hp:14,atk:2,def:0,speed:2.8,skills:[
+    {id:'attack',name:'光弾',power:.8,target:'enemy'},
+    {id:'heal',name:'単体回復',kind:'heal',power:7,target:'ally'},
+    {id:'cleanse',name:'浄化',kind:'cleanse',target:'ally'}
+  ]},
+  dragon:{name:'ドラゴン',cls:'dragon',icon:'▲',hp:120,atk:40,def:6,speed:8.0,skills:[
+    {id:'claw',name:'爪撃',power:.7,target:'enemy'},
+    {id:'breath',name:'範囲ブレス',power:1.0,target:'allEnemies'},
+    {id:'guard',name:'威嚇',kind:'weaken',target:'allEnemies'}
+  ]}
 };
-const D={gold:500,crystals:3,maxFloor:1,currentFloor:1,inRun:false,runGold:0,lordMaxHp:100,lordHp:100,pity:0,slots:5,
-inventory:{slime:{count:8,hps:[10,10,10,10,10,10,10,10]},goblin:{count:3,hps:[18,18,18]},plant:{count:1,hps:[16]},orc:{count:1,hps:[28]},fairy:{count:0,hps:[]},demon:{count:0,hps:[]},golem:{count:0,hps:[]},dragon:{count:0,hps:[]}},
-roster:["slime","goblin","plant","orc"],rewards:[],ai:{threat:{},battles:0,last:[]}};
-let S=load(),B=null,raf=null,last=0;
-const $=x=>document.getElementById(x),screens=["home","battle","reward","result"];
-function clone(x){return JSON.parse(JSON.stringify(x))}function merge(a,b){for(const k in b){if(b[k]&&typeof b[k]=="object"&&!Array.isArray(b[k])&&a[k])merge(a[k],b[k]);else a[k]=b[k]}return a}
-function load(){try{return merge(clone(D),JSON.parse(localStorage.getItem(K))||{})}catch{return clone(D)}}function save(){localStorage.setItem(K,JSON.stringify(S))}
-function screen(x){screens.forEach(y=>$(y).classList.toggle("active",x==y));scrollTo(0,0)}function head(){$("gold").textContent=Math.floor(S.gold);$("crystal").textContent=S.crystals;$("floor").textContent=S.inRun?S.currentFloor:S.maxFloor;$("lord").textContent=Math.ceil(S.lordHp)}
-function home(){head();$("inventory").innerHTML=Object.entries(S.inventory).filter(([,v])=>v.count).map(([id,v])=>`<div class="inv"><div class="tok ${M[id].cls}">${M[id].icon}</div><div><b>${M[id].name} ×${v.count}</b><div class="note">コスト ${M[id].cost}</div></div></div>`).join("")}
-function neigh(i){let r=i>>3,c=i&7,a=[];if(r)a.push(i-8);if(r<7)a.push(i+8);if(c)a.push(i-1);if(c<7)a.push(i+1);return a}
-function canPath(c,s,g){let q=[s],seen=new Set(q);while(q.length){let x=q.shift();if(x==g)return true;for(const n of neigh(x))if(!seen.has(n)&&c[n].type!="rock"){seen.add(n);q.push(n)}}return false}
-function mkgrid(){let c=Array.from({length:64},(_,i)=>({i,type:"empty"})),en=Math.floor(Math.random()*8),lo=56+Math.floor(Math.random()*8);c[en].type="entrance";c[lo].type="lord";let n=Math.floor(Math.random()*21),p=0,t=0;while(p<n&&t++<500){let i=8+Math.floor(Math.random()*48);if(c[i].type!="empty")continue;c[i].type="rock";if(canPath(c,en,lo))p++;else c[i].type="empty"}return{cells:c,entrance:en,lord:lo}}
-function dist(a,b){return Math.abs((a>>3)-(b>>3))+Math.abs((a&7)-(b&7))}
-function path(start,goal){let d=Array(64).fill(1e9),pr=Array(64).fill(-1),open=[start];d[start]=0;while(open.length){open.sort((a,b)=>d[a]-d[b]);let x=open.shift();if(x==goal)break;for(const n of neigh(x)){if(B.grid.cells[n].type=="rock")continue;let extra=B.mons.some(m=>m.alive&&m.pos==n)?3:0,nd=d[x]+1+extra;if(nd<d[n]){d[n]=nd;pr[n]=x;if(!open.includes(n))open.push(n)}}}if(d[goal]>=1e9)return[];let a=[],x=goal;while(x>=0){a.push(x);if(x==start)break;x=pr[x]}return a.reverse()}
-function kind(f){if(f%1000==0)return"神";if(f%100==0)return"大ボス";if(f%50==0)return"階層ボス";if(f%10==0)return"中ボス";if(f%5==0)return"小ボス";return"通常階"}
-function heroes(f){let k=kind(f),n=k=="神"?1:k=="大ボス"?8:k=="階層ボス"?5:k=="中ボス"?3:k=="小ボス"?1:1+Math.floor(Math.random()*3),mul=k=="神"?12:k=="大ボス"?5:k=="階層ボス"?3:k=="中ボス"?2:k=="小ボス"?2.5:1;return Array.from({length:n},(_,i)=>{let hp=Math.round((14+f*1.7)*mul);return{id:i,name:k=="神"?"創世神":k=="小ボス"?"強敵":`勇者${i+1}`,hp,max:hp,atk:Math.max(1,Math.round((3+f*.22)*mul)),def:Math.floor(f/40),int:Math.max(.45,1.3-f*.0004),cd:Math.random(),pos:B?B.grid.entrance:0,alive:1,say:2+Math.random()*4}})}
-function setup(){B={grid:mkgrid(),mons:[],heroes:[],started:0,paused:0,cost:0,maxCost:30,rate:1,surge:0,haste:0,barrier:0,time:0,log:[],selected:null};B.heroes=heroes(S.currentFloor);$("battleTitle").textContent=`第${S.currentFloor}階`;$("kind").textContent=kind(S.currentFloor);$("mode").textContent="準備中";$("begin").disabled=false;hand();board();ui();log(`勇者${B.heroes.length}名が接近中。`);screen("battle");save()}
-function hand(){$("hand").innerHTML=S.roster.filter(x=>S.inventory[x].count).map(id=>`<div class="hand"><div class="tok ${M[id].cls}">${M[id].icon}</div><div><b>${M[id].name}</b><div class="note">所持${S.inventory[id].count} / ${M[id].cost}</div></div><button data-s="${id}">選択</button></div>`).join("")}
-function board(){let e=$("board");e.innerHTML="";B.grid.cells.forEach(c=>{let x=document.createElement("div");x.className=`cell ${c.type}`;x.dataset.i=c.i;if(c.type=="rock")x.textContent="🪨";if(c.type=="entrance")x.textContent="🚪";if(c.type=="lord")x.textContent="👑";let ms=B.mons.filter(m=>m.alive&&m.pos==c.i),h=B.heroes.find(h=>h.alive&&h.pos==c.i);if(ms.length){let m=ms[0],z=M[m.type];x.innerHTML=`<div class="tok ${z.cls}" style="width:70%;height:70%;font-size:12px">${z.icon}</div><div class="hp"><i style="width:${Math.max(0,m.hp/m.max*100)}%"></i></div>`}if(h)x.innerHTML=`🧑<div class="hp hero"><i style="width:${Math.max(0,h.hp/h.max*100)}%"></i></div>`;if(B.selected&&c.type=="empty")x.classList.add("target");e.appendChild(x)})}
-function ui(){head();$("lordbar").style.width=Math.max(0,S.lordHp/S.lordMaxHp*100)+"%";$("lordtxt").textContent=`${Math.ceil(S.lordHp)}/${S.lordMaxHp}`;$("costbar").style.width=Math.min(100,B.cost/B.maxCost*100)+"%";$("costtxt").textContent=`${B.cost.toFixed(1)}/${B.maxCost}`;$("pause").textContent=B.paused?"▶":"⏸"}
-function log(t){B.log.unshift(t);B.log=B.log.slice(0,40);$("log").innerHTML=B.log.map(x=>`<p>${x}</p>`).join("")}
-function summon(type,pos){let z=M[type],iv=S.inventory[type];if(!B.started)return log("戦闘開始後に召喚できる。");if(B.cost<z.cost)return log("コスト不足。");if(B.grid.cells[pos].type!="empty"||B.heroes.some(h=>h.alive&&h.pos==pos))return log("そこには置けない。");B.cost-=z.cost;let hp=iv.hps[0]??z.hp;B.mons.push({id:Date.now()+Math.random(),type,pos,hp,max:z.hp,cd:0,alive:1});B.selected=null;log(`${z.name}召喚。`);save();board();ui()}
-const liveM=()=>B.mons.filter(x=>x.alive),liveH=()=>B.heroes.filter(x=>x.alive);
-function target(h){let ms=liveM();if(!ms.length)return{kind:"lord",pos:B.grid.lord};let best=null,bs=-1e9;for(const m of ms){let z=M[m.type],s=(S.ai.threat[m.type]||0)+z.score/100-dist(h.pos,m.pos)*1.5+(z.heal?8:0)+(z.aoe?5:0)+(m.hp<m.max*.35?3:0);if(path(h.pos,B.grid.lord).includes(m.pos))s+=7;if(s>bs){bs=s;best=m}}let ls=12-path(h.pos,B.grid.lord).length*.25;return ls>bs+2?{kind:"lord",pos:B.grid.lord}:{kind:"monster",entity:best,pos:best.pos}}
-function mtick(m,dt){if(!m.alive)return;let z=M[m.type];m.cd-=dt;if(z.heal){if(m.cd<=0){let a=liveM().filter(x=>dist(x.pos,m.pos)<=z.range&&x.hp<x.max).sort((a,b)=>a.hp/a.max-b.hp/b.max)[0];if(a){a.hp=Math.min(a.max,a.hp+Math.max(2,z.atk*2));m.cd=z.int}}return}let ts=liveH().filter(h=>dist(h.pos,m.pos)<=z.range);if(ts.length&&m.cd<=0){let t=ts.sort((a,b)=>a.hp-b.hp)[0],d=Math.max(1,z.atk-t.def);if(z.aoe){liveH().filter(h=>dist(h.pos,t.pos)<=1).forEach(h=>h.hp-=d);log("ドラゴンの範囲攻撃！")}else t.hp-=d;m.cd=z.int/(performance.now()/1000<B.haste?1.6:1)}}
-function htick(h,dt){if(!h.alive)return;h.cd-=dt;h.say-=dt;let t=target(h);if(h.say<=0){log(t.kind=="lord"?`${h.name}「魔王まで最短で行く！」`:`${h.name}「${M[t.entity.type].name}を先に倒す！」`);h.say=4+Math.random()*5}if(t.kind=="monster"&&t.entity.alive&&dist(h.pos,t.entity.pos)<=1){if(h.cd<=0){let b=performance.now()/1000<B.barrier?.55:1;t.entity.hp-=Math.max(1,(h.atk-M[t.entity.type].def)*b);h.cd=h.int}}else if(t.kind=="lord"&&dist(h.pos,B.grid.lord)<=1){if(h.cd<=0){let b=performance.now()/1000<B.barrier?.55:1;S.lordHp-=h.atk*b;h.cd=h.int;log(`${h.name}が魔王を攻撃！`)}}else{let p=path(h.pos,t.pos);if(p[1]!=null)h.pos=p[1]}}
-function clean(){B.heroes.forEach(h=>{if(h.alive&&h.hp<=0){h.alive=0;S.gold+=20;S.runGold+=20;log(`${h.name}撃破 +20G`);if(Math.random()<.1)S.rewards.push({type:"item",name:"勇者の落とし物"});if(Math.random()<.01)S.rewards.push({type:"relic",name:"遺物"})}});B.mons.forEach(m=>{if(m.alive&&m.hp<=0){m.alive=0;log(`${M[m.type].name}が倒れた。`)}})}
-function hpback(){for(const [id,iv] of Object.entries(S.inventory)){let used=B.mons.filter(m=>m.type==id),surv=used.filter(m=>m.alive).map(m=>Math.max(1,Math.ceil(m.hp))),pool=[...iv.hps];used.forEach(()=>pool.shift());iv.hps=[...surv,...pool].slice(0,iv.count);while(iv.hps.length<iv.count)iv.hps.push(M[id].hp)}}
-function aiLearn(){S.ai.battles++;let u={};B.mons.forEach(m=>u[m.type]=(u[m.type]||0)+1);for(const [id,n] of Object.entries(u))S.ai.threat[id]=(S.ai.threat[id]||0)+n*.25;S.ai.last.push({floor:S.currentFloor,used:u});S.ai.last=S.ai.last.slice(-10)}
-function bossRewards(){let f=S.currentFloor;if(f%100==0)S.crystals+=20;else if(f%50==0)S.crystals+=10;else if(f%10==0)S.crystals+=3;else if(f%5==0)S.crystals+=2}
-function end(win){cancelAnimationFrame(raf);raf=null;B.started=0;$("mode").textContent=win?"勝利":"敗北";hpback();if(win){aiLearn();bossRewards();S.maxFloor=Math.max(S.maxFloor,S.currentFloor+1);save();rewards()}else defeat()}
-function gain(high=false){let r=Math.random()*100,t=r<70?"N":r<97?"R":r<99.5?"SR":r<99.9?"SSR":"LR";if(high&&["N","R"].includes(t))t="SR";let map={N:["slime","goblin"],R:["plant","orc"],SR:["fairy","demon"],SSR:["golem","dragon"],LR:["dragon"]},id=map[t][Math.floor(Math.random()*map[t].length)];S.inventory[id].count++;S.inventory[id].hps.push(M[id].hp);S.rewards.push({type:"monster",name:`${M[id].name}(${t})`})}
-function rewards(){let p=[{c:"red",n:"赤箱",f:()=>gain()},{c:"blue",n:"青箱",f:()=>S.rewards.push({type:"equipment",name:"装備"})},{c:"purple",n:"紫箱",f:()=>S.rewards.push({type:"relic",name:"深淵の遺物"})},{c:"gold",n:"金箱",f:()=>{let g=100+S.currentFloor*8;S.gold+=g;S.runGold+=g}},{c:"black",n:"黒箱",f:()=>{if(Math.random()<.35)gain(true)}}].sort(()=>Math.random()-.5).slice(0,3);$("choices").innerHTML=p.map((x,i)=>`<button class="reward ${x.c}" data-r="${i}"><b>${x.n}</b><p>開けるまで中身は不明。</p></button>`).join("");$("choices").querySelectorAll("button").forEach((b,i)=>b.onclick=()=>{p[i].f();S.currentFloor++;save();confirm(`${p[i].n}を開封。\n次の階へ進む？\nキャンセルで帰還。`)?setup():returnHome()});screen("reward")}
-function returnHome(){S.inRun=false;S.maxFloor=Math.max(S.maxFloor,S.currentFloor);save();result("SAFE RETURN","帰還成功",[`到達階 ${S.currentFloor}`,`獲得ゴールド ${S.runGold}G`,`報酬 ${S.rewards.length}個`])}
-function defeat(){let g=Math.floor(S.gold*.5);S.gold-=g,l=[];for(const [id,iv] of Object.entries(S.inventory)){let h=[];for(let i=0;i<iv.count;i++)Math.random()<.1?l.push(M[id].name):h.push(iv.hps[i]??M[id].hp);iv.count=h.length;iv.hps=h}S.inRun=false;S.lordHp=S.lordMaxHp;save();result("DEFEAT","魔王軍敗北",[`失ったゴールド ${g}G`,`消滅魔物 ${l.length?l.join("、"):"なし"}`,"装備・魔晶石・取得アイテムは保持"])}
-function result(e,t,a){$("resEye").textContent=e;$("resTitle").textContent=t;$("resBody").innerHTML="<ul>"+a.map(x=>`<li>${x}</li>`).join("")+"</ul>";screen("result")}
-function tick(ts){if(!B?.started)return;let dt=Math.min(.2,(ts-last)/1000||0);last=ts;if(!B.paused){B.time+=dt;B.cost=Math.min(B.maxCost,B.cost+dt*B.rate*(performance.now()/1000<B.surge?2.3:1));liveM().forEach(m=>mtick(m,dt));liveH().forEach(h=>htick(h,dt));clean();if(!liveH().length)return end(1);if(S.lordHp<=0){S.lordHp=0;return end(0)}board();ui()}raf=requestAnimationFrame(tick)}
-function skill(s){if(!B?.started)return;let now=performance.now()/1000,c={thunder:12,haste:10,barrier:14,surge:16};if(B.cost<c[s])return log("コスト不足。");B.cost-=c[s];if(s=="thunder"){liveH().sort((a,b)=>a.hp-b.hp).slice(0,3).forEach(h=>h.hp-=14+S.currentFloor*.2);log("落雷！")}if(s=="haste"){B.haste=now+7;log("加速！")}if(s=="barrier"){B.barrier=now+7;log("結界！")}if(s=="surge"){B.surge=now+8;log("召喚促進！")}save();ui()}
-function doSummon(){if(S.crystals<1)return alert("魔晶石不足。");S.crystals--;S.pity++;let g=S.pity>=100,r=Math.random()*100,t=g?"SSR":r<70?"N":r<97?"R":r<99.5?"SR":r<99.9?"SSR":"LR";if(g)S.pity=0;let map={N:["slime","goblin"],R:["plant","orc"],SR:["fairy","demon"],SSR:["golem","dragon"],LR:["dragon"]},id=map[t][Math.floor(Math.random()*map[t].length)];S.inventory[id].count++;S.inventory[id].hps.push(M[id].hp);save();home();head();alert(`${t} ${M[id].name}召喚！`)}
-$("start").onclick=()=>{S.inRun=true;S.currentFloor=Math.max(1,S.maxFloor);S.runGold=0;S.rewards=[];S.lordHp=S.lordMaxHp;save();setup()};$("summon").onclick=()=>{$("modalBody").innerHTML=`<h2>召喚</h2><p>魔晶石1個。天井 ${S.pity}/100</p><button id="one">1回召喚</button>`;$("modal").showModal();setTimeout(()=>$("one").onclick=()=>{doSummon();$("modal").close()},0)};$("party").onclick=()=>{$("modalBody").innerHTML="<h2>編成</h2>"+Object.entries(M).map(([id,m])=>`<label style='display:block;padding:8px'><input type='checkbox' data-p='${id}' ${S.roster.includes(id)?"checked":""} ${S.inventory[id].count?"":"disabled"}> ${m.name}</label>`).join("");$("modal").showModal();$("modalBody").querySelectorAll("[data-p]").forEach(e=>e.onchange=()=>{let id=e.dataset.p;if(e.checked&&!S.roster.includes(id))S.roster.push(id);if(!e.checked)S.roster=S.roster.filter(x=>x!=id);save()})};$("reset").onclick=()=>{if(confirm("完全初期化？")){localStorage.removeItem(K);location.reload()}};$("begin").onclick=()=>{if(B.started)return;B.started=1;B.paused=0;$("mode").textContent="戦闘中";$("begin").disabled=true;last=performance.now();log("戦闘開始。");raf=requestAnimationFrame(tick)};$("pause").onclick=()=>{if(!B?.started)return;B.paused=!B.paused;ui();save()};$("retreat").onclick=()=>{if(confirm("帰還する？")){if(raf)cancelAnimationFrame(raf);hpback();returnHome()}};$("hand").onclick=e=>{let b=e.target.closest("[data-s]");if(b){B.selected=b.dataset.s;board()}};$("board").onclick=e=>{let c=e.target.closest(".cell");if(c&&B?.selected)summon(B.selected,+c.dataset.i)};document.querySelectorAll("[data-skill]").forEach(b=>b.onclick=()=>skill(b.dataset.skill));$("homeBtn").onclick=()=>{B=null;home();screen("home")};$("menu").onclick=()=>{$("modalBody").innerHTML=`<h2>メニュー</h2><p>最高到達 ${S.maxFloor}</p><p>AI学習戦闘数 ${S.ai.battles}</p><p>常時オートセーブ</p>`;$("modal").showModal()};$("close").onclick=()=>$("modal").close();addEventListener("beforeunload",save);document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});home();head();S.inRun?setup():screen("home");
+
+const DEFAULT_STATE={
+  floor:1,maxFloor:1,gold:500,crystals:3,lordHp:100,lordMaxHp:100,
+  inRun:false,runGold:0,pity:0,
+  party:['slime','goblin','fairy','dragon'],
+  inventory:{
+    slime:{count:4,level:1,hp:[10,10,10,10]},
+    goblin:{count:2,level:1,hp:[18,18]},
+    fairy:{count:1,level:1,hp:[14]},
+    dragon:{count:1,level:1,hp:[120]}
+  },
+  items:[],equipment:[],relics:[],aiMemory:{focus:{},partySeen:{},battles:0}
+};
+
+let state=load();
+let battle=null;
+let loop=null;
+let last=0;
+
+const $=id=>document.getElementById(id);
+const screens=['homeScreen','battleScreen','rewardScreen','resultScreen'];
+
+function clone(x){return JSON.parse(JSON.stringify(x))}
+function merge(a,b){
+  for(const k of Object.keys(b||{})){
+    if(b[k]&&typeof b[k]==='object'&&!Array.isArray(b[k])&&a[k]&&typeof a[k]==='object')merge(a[k],b[k]);
+    else a[k]=b[k];
+  }
+}
+function load(){
+  try{const out=clone(DEFAULT_STATE);merge(out,JSON.parse(localStorage.getItem(SAVE_KEY)));return out}
+  catch{return clone(DEFAULT_STATE)}
+}
+function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(state))}
+function screen(id){screens.forEach(x=>$(x).classList.toggle('active',x===id));window.scrollTo({top:0,behavior:'instant'})}
+function sync(){
+  $('floorText').textContent=state.floor;
+  $('goldText').textContent=Math.floor(state.gold);
+  $('crystalText').textContent=state.crystals;
+  $('lordHpText').textContent=Math.ceil(state.lordHp);
+}
+function log(text){
+  if(!battle)return;
+  battle.log.unshift(text);
+  battle.log=battle.log.slice(0,45);
+  $('battleLog').innerHTML=battle.log.map(x=>`<p>${x}</p>`).join('');
+}
+function renderHome(){
+  sync();
+  $('homeParty').innerHTML=state.party.map((id,i)=>{
+    const m=MONSTERS[id],inv=state.inventory[id];
+    const hp=inv.hp[i]??m.hp;
+    return `<div class="listRow"><div class="token ${m.cls}">${m.icon}</div><div class="meta"><b>${m.name}</b><small>Lv.${inv.level} / HP ${hp}/${m.hp}</small></div></div>`
+  }).join('');
+  $('inventoryList').innerHTML=Object.entries(state.inventory).map(([id,v])=>{
+    const m=MONSTERS[id];
+    return `<div class="listRow"><div class="token ${m.cls}">${m.icon}</div><div class="meta"><b>${m.name} ×${v.count}</b><small>Lv.${v.level}</small></div></div>`;
+  }).join('');
+}
+
+function floorKind(f){
+  if(f%1000===0)return '神戦';
+  if(f%100===0)return '大ボス';
+  if(f%50===0)return '階層ボス';
+  if(f%10===0)return '中ボス';
+  if(f%5===0)return '小ボス';
+  return '通常戦';
+}
+function makeEnemies(f){
+  let count=1+Math.floor(Math.random()*3),mult=1;
+  const kind=floorKind(f);
+  if(kind==='小ボス'){count=1;mult=2.7}
+  if(kind==='中ボス'){count=3;mult=1.8}
+  if(kind==='階層ボス'){count=5;mult=2.2}
+  if(kind==='大ボス'){count=6;mult=3.2}
+  if(kind==='神戦'){count=1;mult=18}
+  return Array.from({length:count},(_,i)=>{
+    const maxHp=Math.round((14+f*1.6)*mult);
+    return {
+      id:'e'+i,name:kind==='神戦'?'創世神':kind==='小ボス'?'強敵':`勇者${i+1}`,
+      maxHp,hp:maxHp,atk:Math.max(2,Math.round((3+f*.22)*mult)),def:Math.floor(f/40),
+      speed:Math.max(.7,1.7-f*.0005),atb:Math.random()*.45,status:{},alive:true,guard:false
+    };
+  });
+}
+function makeAllies(){
+  return state.party.map((id,i)=>{
+    const m=MONSTERS[id],inv=state.inventory[id],hp=inv.hp[i]??m.hp;
+    return {id:'a'+i,type:id,name:m.name,maxHp:m.hp,hp,atk:m.atk,def:m.def,speed:m.speed,atb:0,status:{},alive:hp>0,guard:false};
+  });
+}
+function setupBattle(){
+  battle={
+    allies:makeAllies(),enemies:makeEnemies(state.floor),paused:false,activeId:null,log:[],
+    skillCd:{thunder:0,haste:0,barrier:0,surge:0},hasteUntil:0,barrierUntil:0
+  };
+  $('battleTitle').textContent=`第${state.floor}階`;
+  $('floorKind').textContent=floorKind(state.floor);
+  $('battleState').textContent='戦闘中';
+  renderBattle();
+  log(`${floorKind(state.floor)}開始。勇者隊が現れた。`);
+  screen('battleScreen');
+  last=performance.now();
+  loop=requestAnimationFrame(tick);
+  save();
+}
+function pct(a,b){return Math.max(0,Math.min(100,a/b*100))}
+function statuses(u){
+  const s=[];
+  if(u.guard)s.push('防御');
+  if(u.status.slow>0)s.push('鈍足');
+  if(u.status.weaken>0)s.push('弱体');
+  return s.join(' / ');
+}
+function unitCard(u,enemy=false){
+  const cls=enemy?'enemy':'';
+  const ready=!enemy&&u.alive&&u.atb>=1?' ready':'';
+  const token=enemy?`<div class="token" style="background:#9b5e4c">🧑</div>`:`<div class="token ${MONSTERS[u.type].cls}">${MONSTERS[u.type].icon}</div>`;
+  return `<div class="unitCard ${cls}${ready}" data-unit="${u.id}">
+    <div class="unitHead">${token}<b>${u.name}</b></div>
+    <div class="unitHp"><i style="width:${pct(u.hp,u.maxHp)}%"></i></div>
+    <div class="unitInfo"><span>HP ${Math.max(0,Math.ceil(u.hp))}/${u.maxHp}</span><span>ATK ${u.atk}</span></div>
+    <div class="atb"><i style="width:${pct(u.atb,1)}%"></i></div>
+    <div class="statusLine">${u.alive?statuses(u):'戦闘不能'}</div>
+  </div>`;
+}
+function renderBattle(){
+  $('allyField').innerHTML=battle.allies.map(x=>unitCard(x,false)).join('');
+  $('enemyField').innerHTML=battle.enemies.map(x=>unitCard(x,true)).join('');
+  $('lordBar').style.width=`${pct(state.lordHp,state.lordMaxHp)}%`;
+  $('lordHpBattle').textContent=`${Math.max(0,Math.ceil(state.lordHp))} / ${state.lordMaxHp}`;
+  renderCommands();
+  sync();
+}
+function renderCommands(){
+  const u=battle.allies.find(x=>x.id===battle.activeId&&x.alive&&x.atb>=1);
+  if(!u){
+    $('activeUnitName').textContent='行動待ち';
+    $('commandHint').textContent='ゲージが溜まると操作できる';
+    $('commandButtons').innerHTML='';
+    return;
+  }
+  $('activeUnitName').textContent=u.name;
+  $('commandHint').textContent='コマンドを選択';
+  $('commandButtons').innerHTML=MONSTERS[u.type].skills.map((s,i)=>`<button data-command="${i}">${s.name}</button>`).join('');
+}
+function living(arr){return arr.filter(x=>x.alive)}
+function lowest(arr){return [...arr].filter(x=>x.alive).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)[0]}
+function damage(attacker,target,power=1){
+  const weaken=attacker.status.weaken>0?.7:1;
+  const guard=target.guard?.55:1;
+  return Math.max(1,Math.round((attacker.atk*power-target.def)*weaken*guard));
+}
+function applySkill(user,skill,target){
+  user.guard=false;
+  if(skill.kind==='guard'){
+    user.guard=true; log(`${user.name}は防御した。`);
+  }else if(skill.kind==='heal'){
+    const t=target||lowest(battle.allies);
+    const amount=Math.round(skill.power+user.atk*1.5);
+    t.hp=Math.min(t.maxHp,t.hp+amount); log(`${user.name}が${t.name}を${amount}回復。`);
+  }else if(skill.kind==='cleanse'){
+    const t=target||lowest(battle.allies);t.status={};log(`${user.name}が${t.name}を浄化。`);
+  }else if(skill.kind==='weaken'){
+    living(battle.enemies).forEach(e=>e.status.weaken=6);log(`${user.name}の威嚇。勇者隊が弱体化。`);
+  }else if(skill.target==='allEnemies'){
+    living(battle.enemies).forEach(e=>{const d=damage(user,e,skill.power);e.hp-=d;});
+    log(`${user.name}の${skill.name}！勇者隊全体へ攻撃。`);
+  }else{
+    const t=target||lowest(battle.enemies);
+    const hits=skill.hits||1;
+    let total=0;
+    for(let i=0;i<hits;i++){const d=damage(user,t,skill.power);t.hp-=d;total+=d}
+    if(skill.status==='slow')t.status.slow=skill.turns||5;
+    log(`${user.name}の${skill.name}！${t.name}へ${total}ダメージ。`);
+  }
+  user.atb=0;battle.activeId=null;
+  cleanup();
+}
+function chooseAiTarget(enemy){
+  const alive=living(battle.allies);
+  if(!alive.length)return null;
+  let best=null,score=-Infinity;
+  for(const a of alive){
+    const seen=state.aiMemory.focus[a.type]||0;
+    let s=seen;
+    if(a.type==='fairy')s+=10;
+    if(a.type==='dragon')s+=7;
+    if(a.hp<a.maxHp*.35)s+=4;
+    if(a.guard)s-=5;
+    if(s>score){score=s;best=a;}
+  }
+  return best||alive[0];
+}
+function enemyAct(e){
+  e.guard=false;
+  const target=chooseAiTarget(e);
+  if(target){
+    const d=damage(e,target,1);
+    target.hp-=d;
+    log(`${e.name}「${target.name}を先に崩す！」 ${d}ダメージ。`);
+  }else{
+    const barrier=performance.now()/1000<battle.barrierUntil?.55:1;
+    const d=Math.max(1,Math.round(e.atk*barrier));
+    state.lordHp-=d;
+    log(`${e.name}が魔王へ${d}ダメージ。`);
+  }
+  e.atb=0;
+  cleanup();
+}
+function cleanup(){
+  battle.allies.forEach(a=>{if(a.alive&&a.hp<=0){a.alive=false;log(`${a.name}が戦闘不能。`)}});
+  battle.enemies.forEach(e=>{if(e.alive&&e.hp<=0){e.alive=false;state.gold+=20;state.runGold+=20;log(`${e.name}を撃破。+20G`)}});
+  if(!living(battle.enemies).length){finish(true);return}
+  if(!living(battle.allies).length){
+    living(battle.enemies).forEach(e=>e.atb=Math.max(e.atb,.85));
+  }
+  if(state.lordHp<=0){state.lordHp=0;finish(false)}
+}
+function tick(ts){
+  if(!battle||battle.paused){loop=requestAnimationFrame(tick);return}
+  const dt=Math.min(.12,(ts-last)/1000||0);last=ts;
+  const now=performance.now()/1000;
+  for(const a of living(battle.allies)){
+    const slow=a.status.slow>0?.7:1;
+    const haste=now<battle.hasteUntil?1.55:1;
+    a.atb=Math.min(1,a.atb+dt/a.speed*slow*haste);
+    if(a.status.slow>0)a.status.slow-=dt;
+    if(a.status.weaken>0)a.status.weaken-=dt;
+  }
+  for(const e of living(battle.enemies)){
+    const slow=e.status.slow>0?.7:1;
+    e.atb=Math.min(1,e.atb+dt/e.speed*slow);
+    if(e.status.slow>0)e.status.slow-=dt;
+    if(e.status.weaken>0)e.status.weaken-=dt;
+    if(e.atb>=1)enemyAct(e);
+  }
+  if(!battle.activeId){
+    const ready=battle.allies.find(x=>x.alive&&x.atb>=1);
+    if(ready)battle.activeId=ready.id;
+  }
+  for(const k of Object.keys(battle.skillCd))battle.skillCd[k]=Math.max(0,battle.skillCd[k]-dt);
+  renderBattle();
+  loop=requestAnimationFrame(tick);
+}
+function finish(win){
+  if(loop)cancelAnimationFrame(loop);loop=null;
+  if(win){
+    persistPartyHp();recordAi();
+    state.maxFloor=Math.max(state.maxFloor,state.floor+1);
+    giveBossCrystals();
+    save();showRewards();
+  }else{
+    persistPartyHp();defeat();
+  }
+}
+function persistPartyHp(){
+  battle.allies.forEach((a,i)=>{
+    const inv=state.inventory[a.type];
+    if(!inv.hp)inv.hp=[];
+    inv.hp[i]=Math.max(0,Math.ceil(a.hp));
+  });
+}
+function recordAi(){
+  state.aiMemory.battles++;
+  for(const a of battle.allies)state.aiMemory.focus[a.type]=(state.aiMemory.focus[a.type]||0)+1;
+}
+function giveBossCrystals(){
+  const f=state.floor;
+  if(f%100===0)state.crystals+=20;
+  else if(f%50===0)state.crystals+=10;
+  else if(f%10===0)state.crystals+=3;
+  else if(f%5===0)state.crystals+=2;
+}
+function rewards(){
+  const arr=[
+    {c:'red',t:'赤箱',d:'魔物を1体獲得',fn:gainMonster},
+    {c:'blue',t:'青箱',d:'装備を1つ獲得',fn:()=>state.equipment.push('ランダム装備')},
+    {c:'purple',t:'紫箱',d:'遺物抽選',fn:()=>state.relics.push('深淵の遺物')},
+    {c:'gold',t:'金箱',d:'ゴールド獲得',fn:()=>{const g=120+state.floor*10;state.gold+=g;state.runGold+=g}},
+    {c:'black',t:'黒箱',d:'超レアか、何もなし',fn:()=>{if(Math.random()<.35)gainMonster(true)}}
+  ];
+  return arr.sort(()=>Math.random()-.5).slice(0,3);
+}
+function showRewards(){
+  const rs=rewards();
+  $('rewardChoices').innerHTML=rs.map((r,i)=>`<button class="rewardCard ${r.c}" data-r="${i}"><b>${r.t}</b><span>中身は開けるまで分からない。</span></button>`).join('');
+  $('rewardChoices').querySelectorAll('button').forEach((b,i)=>b.onclick=()=>{
+    rs[i].fn();state.floor++;save();
+    const go=confirm(`${rs[i].t}を開封。\n\n次の階へ進む？\nキャンセルで帰還する。`);
+    if(go)setupBattle();else returnHome(true);
+  });
+  screen('rewardScreen');
+}
+function gainMonster(high=false){
+  const pool=high?['fairy','dragon']:['slime','goblin','fairy','dragon'];
+  const id=pool[Math.floor(Math.random()*pool.length)];
+  const inv=state.inventory[id];inv.count++;inv.hp.push(MONSTERS[id].hp);
+  state.items.push(MONSTERS[id].name);
+}
+function defeat(){
+  const lost=Math.floor(state.gold*.5);state.gold-=lost;
+  const gone=[];
+  for(const [id,inv] of Object.entries(state.inventory)){
+    const next=[];
+    for(let i=0;i<inv.count;i++){
+      if(Math.random()<.10)gone.push(MONSTERS[id].name);
+      else next.push(inv.hp[i]??MONSTERS[id].hp);
+    }
+    inv.count=next.length;inv.hp=next;
+  }
+  state.inRun=false;state.lordHp=state.lordMaxHp;save();
+  showResult('DEFEAT','魔王軍敗北',[
+    `失ったゴールド：${lost}G`,
+    `消滅した魔物：${gone.length?gone.join('、'):'なし'}`,
+    `装備・魔晶石・獲得アイテムは保持`
+  ]);
+}
+function returnHome(success){
+  state.inRun=false;state.maxFloor=Math.max(state.maxFloor,state.floor);state.lordHp=state.lordMaxHp;save();
+  showResult('SAFE RETURN','帰還成功',[
+    `到達階：${state.floor}`,
+    `獲得ゴールド：${state.runGold}G`,
+    `HPは現在値のまま保存`
+  ]);
+}
+function showResult(e,t,items){
+  $('resultEyebrow').textContent=e;$('resultTitle').textContent=t;
+  $('resultBody').innerHTML=`<ul>${items.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  screen('resultScreen');
+}
+function useLordSkill(id){
+  if(!battle||battle.skillCd[id]>0)return;
+  const now=performance.now()/1000;
+  if(id==='thunder'){
+    const target=lowest(battle.enemies);
+    if(target){target.hp-=18+state.floor*.2;log(`魔王スキル「落雷」！${target.name}へ大ダメージ。`)}
+    battle.skillCd[id]=12;
+  }
+  if(id==='haste'){battle.hasteUntil=now+7;battle.skillCd[id]=16;log('魔王スキル「加速」！')}
+  if(id==='barrier'){battle.barrierUntil=now+7;battle.skillCd[id]=18;log('魔王スキル「結界」！')}
+  if(id==='surge'){
+    const dead=battle.allies.find(x=>!x.alive);
+    if(dead){dead.alive=true;dead.hp=Math.max(1,Math.round(dead.maxHp*.25));dead.atb=.5;log(`召喚促進で${dead.name}が再参戦。`)}
+    else log('交代できる控えがいない。');
+    battle.skillCd[id]=22;
+  }
+  cleanup();save();
+}
+function summonOne(){
+  if(state.crystals<1){alert('魔晶石が足りない。');return}
+  state.crystals--;state.pity++;
+  const guaranteed=state.pity>=100;
+  const roll=Math.random()*100;
+  let id;
+  if(guaranteed){id='dragon';state.pity=0}
+  else if(roll<70)id='slime';
+  else if(roll<97)id='goblin';
+  else if(roll<99.5)id='fairy';
+  else id='dragon';
+  state.inventory[id].count++;state.inventory[id].hp.push(MONSTERS[id].hp);save();renderHome();
+  alert(`${MONSTERS[id].name}を召喚！`);
+}
+
+$('startBtn').onclick=()=>{
+  state.inRun=true;state.floor=Math.max(1,state.maxFloor);state.runGold=0;state.lordHp=state.lordMaxHp;save();setupBattle();
+};
+$('partyBtn').onclick=()=>{
+  $('modalBody').innerHTML=`<h2>パーティ編成</h2><p>4枠をタップして選ぶ。</p>${[0,1,2,3].map(i=>`
+    <label style="display:block;margin:10px 0">枠${i+1}
+      <select data-slot="${i}" style="width:100%;margin-top:5px;padding:10px;border-radius:10px">
+      ${Object.keys(MONSTERS).filter(id=>state.inventory[id].count>0).map(id=>`<option value="${id}" ${state.party[i]===id?'selected':''}>${MONSTERS[id].name}</option>`).join('')}
+      </select>
+    </label>`).join('')}`;
+  $('modal').showModal();
+  $('modalBody').querySelectorAll('select').forEach(s=>s.onchange=()=>{state.party[+s.dataset.slot]=s.value;save();renderHome()});
+};
+$('summonBtn').onclick=()=>{
+  $('modalBody').innerHTML=`<h2>召喚</h2><p>魔晶石1個で1回。100連目はドラゴン確定。</p><p>天井：${state.pity}/100</p><button id="summonOneBtn">1回召喚</button>`;
+  $('modal').showModal();
+  setTimeout(()=>$('summonOneBtn').onclick=()=>{summonOne();$('modal').close()},0);
+};
+$('resetBtn').onclick=()=>{if(confirm('セーブを完全初期化する？')){localStorage.removeItem(SAVE_KEY);location.reload()}};
+$('pauseBtn').onclick=()=>{battle.paused=!battle.paused;$('battleState').textContent=battle.paused?'一時停止':'戦闘中';save()};
+$('retreatBtn').onclick=()=>{if(confirm('ここで帰還する？')){if(loop)cancelAnimationFrame(loop);persistPartyHp();returnHome(true)}};
+$('commandButtons').onclick=e=>{
+  const btn=e.target.closest('[data-command]');if(!btn)return;
+  const u=battle.allies.find(x=>x.id===battle.activeId);
+  if(!u)return;
+  const skill=MONSTERS[u.type].skills[+btn.dataset.command];
+  let target=null;
+  if(skill.target==='enemy')target=lowest(battle.enemies);
+  if(skill.target==='ally')target=lowest(battle.allies);
+  applySkill(u,skill,target);
+};
+document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>useLordSkill(b.dataset.skill));
+$('resultHomeBtn').onclick=()=>{battle=null;renderHome();screen('homeScreen')};
+$('menuBtn').onclick=()=>{$('modalBody').innerHTML=`<h2>メニュー</h2><p>最高到達階：${state.maxFloor}</p><p>AI学習戦闘数：${state.aiMemory.battles}</p><p>すべてリアルタイム保存。</p>`;$('modal').showModal()};
+document.querySelectorAll('.modalClose').forEach(b=>b.onclick=()=>$('modal').close());
+window.addEventListener('beforeunload',save);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+
+renderHome();sync();
+if(state.inRun)setupBattle();else screen('homeScreen');
+
 })();
